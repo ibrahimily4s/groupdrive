@@ -1,0 +1,368 @@
+<!doctype html>
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>GroupDrive Car Groups</title>
+<style>
+/* Layout: one column on phones, a wider column on desktop. Views swap in place. */
+:root {
+  --bg: #f6f3ec; --surface: #fffdf8; --fg: #1d2330; --muted: #5d6573;
+  --line: #e4dfd3; --accent: #0f5f58; --accent-ink: #ffffff;
+  --good: #166534; --warn: #92400e; --bad: #9f1239;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --sans: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14181f; --surface: #1b2029; --fg: #eef0f3; --muted: #a2a9b5;
+    --line: #2c3340; --accent: #5cc3b8; --accent-ink: #0c1714;
+    --good: #86efac; --warn: #fcd34d; --bad: #fda4af; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14181f; --surface: #1b2029; --fg: #eef0f3; --muted: #a2a9b5;
+  --line: #2c3340; --accent: #5cc3b8; --accent-ink: #0c1714;
+  --good: #86efac; --warn: #fcd34d; --bad: #fda4af; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font: 15px/1.5 var(--sans);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: 0; padding-bottom: 32px;
+  max-width: 760px; margin: 0 auto;
+}
+[hidden] { display: none !important; }
+header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 20px 0 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+header h1 { font: 600 26px/1.1 var(--serif); margin: 0; letter-spacing: -0.01em; }
+header .tag { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+h2 { font: 600 20px/1.2 var(--serif); margin: 0 0 6px; text-wrap: balance; }
+h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 22px 0 10px; font-weight: 600; }
+p { margin: 0 0 10px; max-width: 65ch; }
+.muted { color: var(--muted); font-size: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin: 14px 0; min-width: 0; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.stack > * + * { margin-top: 10px; }
+.group-link { display: block; width: 100%; text-align: left; background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin: 10px 0; font: inherit; cursor: pointer; }
+.group-link:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; background: var(--line); color: var(--fg); white-space: nowrap; }
+.pill.ok { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
+.pill.wait { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; margin: 10px 0 4px; }
+.bar > span { display: block; height: 100%; background: var(--accent); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid2 > * { min-width: 0; }
+@media (max-width: 420px) { .grid2 { grid-template-columns: 1fr; } }
+label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+input, select { width: 100%; font: inherit; padding: 10px 11px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--fg); }
+button, .btn { font: inherit; font-weight: 600; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 11px 16px; cursor: pointer; }
+button.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+.tabnum { font-variant-numeric: tabular-nums; }
+.table-wrap { overflow-x: auto; margin: 0 -2px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 9px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.best { color: var(--accent); font-weight: 700; }
+ul.list { margin: 0; padding-left: 18px; }
+ul.list li { margin: 7px 0; }
+.note { font-size: 13px; color: var(--muted); border-left: 3px solid var(--accent); padding: 4px 0 4px 12px; margin: 12px 0; }
+.example-badge { font-size: 12px; color: var(--warn); }
+</style>
+
+<header>
+  <h1>GroupDrive</h1>
+  <span class="tag">Demo &middot; sample data</span>
+</header>
+
+<main id="app">
+
+  <!-- List view -->
+  <section id="view-list">
+    <p class="muted" style="margin-top:14px">Buyers who want the same car in the same city join a group. Dealers quote one buyer at a time. A group can compare quotes and negotiate together.</p>
+    <div id="group-list"></div>
+    <button id="btn-new" style="margin-top:12px; width:100%">Start a new group</button>
+  </section>
+
+  <!-- New group view -->
+  <section id="view-new" hidden>
+    <button class="ghost" data-back style="margin-top:14px">&larr; Back</button>
+    <h2 style="margin-top:14px">Start a group</h2>
+    <form id="form-new" class="card stack">
+      <div class="grid2">
+        <div><label for="n-make">Make</label><input id="n-make" required placeholder="Maruti Suzuki"></div>
+        <div><label for="n-model">Model</label><input id="n-model" required placeholder="Brezza"></div>
+      </div>
+      <label for="n-variant">Variant</label><input id="n-variant" required placeholder="ZXi AT, petrol">
+      <div class="grid2">
+        <div><label for="n-city">City</label><input id="n-city" required placeholder="Pune"></div>
+        <div><label for="n-target">Target buyers</label><input id="n-target" type="number" min="2" max="500" value="20" required></div>
+      </div>
+      <label for="n-bench">Your reference on-road price, Rs (optional)</label>
+      <input id="n-bench" type="number" min="0" inputmode="numeric" placeholder="Used only to show savings">
+      <button type="submit">Create group</button>
+    </form>
+  </section>
+
+  <!-- Group view -->
+  <section id="view-group" hidden>
+    <button class="ghost" data-back style="margin-top:14px">&larr; All groups</button>
+    <div id="group-detail"></div>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  var KEY = "groupdrive-demo-v1";
+  var memoryStore = null;
+
+  function seed() {
+    return {
+      groups: [
+        {
+          id: 1, make: "Maruti Suzuki", model: "Brezza", variant: "ZXi AT, petrol",
+          city: "Pune", target: 20, benchmark: 1450000, example: true,
+          members: ["Asha", "Ravi", "Meera", "Imran", "Kavya", "Vikram", "Neha", "Arjun", "Priya", "Sameer", "Ananya", "Rohan", "Divya", "Karan"],
+          quotes: [
+            { dealer: "Dealer A (Kothrud)", onRoad: 1421000, discount: 15000, free: 10000, notes: "Valid 7 days. Needs bank finance." },
+            { dealer: "Dealer B (Hadapsar)", onRoad: 1398000, discount: 0, free: 0, notes: "Cash-only quote. Insurance via dealer." }
+          ]
+        },
+        {
+          id: 2, make: "Tata", model: "Nexon", variant: "Creative AMT",
+          city: "Bengaluru", target: 10, benchmark: 1380000, example: true,
+          members: ["Asha", "Ravi", "Meera", "Imran"],
+          quotes: [
+            { dealer: "Dealer C (Whitefield)", onRoad: 1362000, discount: 20000, free: 5000, notes: "Written quote. Delivery in 3 weeks." }
+          ]
+        }
+      ],
+      nextId: 3
+    };
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* storage blocked or unavailable */ }
+    if (memoryStore) return memoryStore;
+    return seed();
+  }
+
+  function save(data) {
+    memoryStore = data;
+    try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* keep in memory */ }
+  }
+
+  var data = load();
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // Indian digit grouping: 14,50,000
+  function rs(n) {
+    if (n == null || isNaN(n)) return "-";
+    var neg = n < 0;
+    var s = String(Math.abs(Math.round(n)));
+    if (s.length > 3) {
+      var last = s.slice(-3), head = s.slice(0, -3), parts = [];
+      while (head.length > 2) { parts.unshift(head.slice(-2)); head = head.slice(0, -2); }
+      if (head) parts.unshift(head);
+      s = parts.join(",") + "," + last;
+    }
+    return (neg ? "-" : "") + "Rs " + s;
+  }
+
+  function effective(q) { return q.onRoad - q.discount - q.free; }
+
+  function show(id) {
+    ["view-list", "view-new", "view-group"].forEach(function (v) {
+      document.getElementById(v).hidden = v !== id;
+    });
+    window.scrollTo(0, 0);
+  }
+
+  function renderList() {
+    var box = document.getElementById("group-list");
+    if (!data.groups.length) {
+      box.innerHTML = '<p class="muted" style="margin-top:14px">No groups yet. Start one to get going.</p>';
+      return;
+    }
+    box.innerHTML = data.groups.map(function (g) {
+      var n = g.members.length, pct = Math.min(100, Math.round(100 * n / g.target));
+      var ready = n >= g.target;
+      return '<button class="group-link" data-open="' + g.id + '">' +
+        '<div class="row"><strong>' + esc(g.make + " " + g.model) + '</strong>' +
+        '<span class="pill ' + (ready ? "ok" : "wait") + ' tabnum">' +
+        (ready ? "Ready to negotiate" : n + " / " + g.target + " joined") + '</span></div>' +
+        '<div class="muted">' + esc(g.variant) + " &middot; " + esc(g.city) + '</div>' +
+        '<div class="bar"><span style="width:' + pct + '%"></span></div>' +
+        (g.example ? '<div class="example-badge">Sample group</div>' : "") +
+        '</button>';
+    }).join("");
+  }
+
+  function renderGroup(id) {
+    var g = data.groups.filter(function (x) { return x.id === id; })[0];
+    if (!g) { show("view-list"); return; }
+    var n = g.members.length, ready = n >= g.target;
+    var pct = Math.min(100, Math.round(100 * n / g.target));
+    var quotes = g.quotes.slice().sort(function (a, b) { return effective(a) - effective(b); });
+    var best = quotes[0];
+    var savingsLine = "";
+    if (best && g.benchmark) {
+      var diff = g.benchmark - effective(best);
+      savingsLine = diff >= 0
+        ? '<p class="best">Best quote is ' + rs(diff) + " below your reference price.</p>"
+        : '<p style="color:var(--bad)">Best quote is ' + rs(-diff) + " above your reference price. Keep negotiating.</p>";
+    }
+
+    var rows = quotes.map(function (q, i) {
+      return "<tr>" +
+        "<td>" + esc(q.dealer) + (i === 0 ? ' <span class="pill ok">best</span>' : "") + "</td>" +
+        '<td class="num">' + rs(q.onRoad) + "</td>" +
+        '<td class="num">' + rs(q.discount) + "</td>" +
+        '<td class="num">' + rs(q.free) + "</td>" +
+        '<td class="num ' + (i === 0 ? "best" : "") + '">' + rs(effective(q)) + "</td>" +
+        "</tr>" +
+        (q.notes ? '<tr><td colspan="5" class="muted" style="border-bottom:1px solid var(--line)">' + esc(q.notes) + "</td></tr>" : "");
+    }).join("");
+
+    var html = '' +
+      '<div class="card stack">' +
+        '<div class="row"><h2>' + esc(g.make + " " + g.model) + '</h2>' +
+        '<span class="pill ' + (ready ? "ok" : "wait") + ' tabnum">' + (ready ? "Group complete" : n + " / " + g.target) + '</span></div>' +
+        '<div class="muted">' + esc(g.variant) + " &middot; " + esc(g.city) + "</div>" +
+        '<div class="bar"><span style="width:' + pct + '%"></span></div>' +
+        '<p>' + (ready
+          ? "The group is full. Go to the showroom together and compare every written quote."
+          : (g.target - n) + " more buyer" + (g.target - n === 1 ? "" : "s") + " needed before you go to the showroom together.") + "</p>" +
+        (g.example ? '<p class="example-badge">Sample data for demonstration.</p>' : "") +
+      "</div>" +
+
+      '<h3>Join this group</h3>' +
+      '<form class="card stack" id="form-join">' +
+        '<div class="grid2"><div><label for="j-name">Name</label><input id="j-name" required></div>' +
+        '<div><label for="j-phone">Phone</label><input id="j-phone" inputmode="tel" required></div></div>' +
+        '<p class="muted" style="margin:0">Phone numbers are for group members only. This demo does not share them.</p>' +
+        '<button type="submit">Join group</button>' +
+      "</form>" +
+
+      '<h3>Members (' + n + ")</h3>" +
+      '<div class="card"><p style="margin:0">' +
+        (n ? g.members.map(esc).join(", ") : '<span class="muted">No one has joined yet.</span>') +
+      "</p></div>" +
+
+      '<h3>Dealer quotes</h3>' +
+      '<div class="card">' +
+        (quotes.length
+          ? '<div class="table-wrap"><table><tr><th>Dealer</th><th class="num">On-road</th><th class="num">Discount</th><th class="num">Extras</th><th class="num">Effective</th></tr>' + rows + "</table></div>" + savingsLine
+          : '<p class="muted" style="margin:0">No quotes logged yet.</p>') +
+        '<p class="note">Effective price = on-road minus cash discount minus free accessories. Log only written quotes.</p>' +
+        '<form id="form-quote" class="stack" style="margin-top:12px">' +
+          '<label for="q-dealer">Dealer</label><input id="q-dealer" required>' +
+          '<div class="grid2"><div><label for="q-road">On-road total, Rs</label><input id="q-road" type="number" min="1" inputmode="numeric" required></div>' +
+          '<div><label for="q-disc">Cash discount, Rs</label><input id="q-disc" type="number" min="0" inputmode="numeric" value="0"></div></div>' +
+          '<div class="grid2"><div><label for="q-free">Free extras value, Rs</label><input id="q-free" type="number" min="0" inputmode="numeric" value="0"></div>' +
+          '<div><label for="q-notes">Notes</label><input id="q-notes" placeholder="Validity, delivery, finance"></div></div>' +
+          '<button type="submit">Log quote</button>' +
+        "</form>" +
+      "</div>" +
+
+      '<h3>Red flags to check</h3>' +
+      '<div class="card"><ul class="list">' + [
+        "Any quote without an itemised breakdown: ex-showroom, RTO, insurance, TCS, other charges.",
+        "Vague add-ons such as dealer handling, documentation, fitting or logistics on top of on-road price.",
+        "Pressure to decide the same day, or a unit that disappears once you ask for it in writing.",
+        "Extended warranty or paid add-ons required before the discount applies.",
+        "Cash, or payment to a personal account instead of the dealership's official account.",
+        "Accessories called free that were already included or are inflated in value.",
+        "Discounts that only apply if you finance through the dealer's partner bank."
+      ].map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul></div>" +
+
+      '<h3>Before you pay</h3>' +
+      '<div class="card"><ul class="list">' + [
+        "Check the ex-showroom price on the manufacturer's site for your city and variant.",
+        "Ask for a written, itemised on-road price and compare every line against the group's quotes.",
+        "Verify RTO and road tax with the state transport portal.",
+        "Compare insurance with your own insurer before accepting the dealer's policy.",
+        "Get the invoice and delivery challan in the dealership's name before any payment.",
+        "Pay only through the dealership's official account."
+      ].map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>" +
+      '<p class="muted" style="margin:12px 0 0">Prices change. This is not financial or legal advice.</p></div>';
+
+    document.getElementById("group-detail").innerHTML = html;
+    bindGroupForms(id);
+    show("view-group");
+  }
+
+  function bindGroupForms(id) {
+    var join = document.getElementById("form-join");
+    join.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var name = document.getElementById("j-name").value.trim();
+      var phone = document.getElementById("j-phone").value.trim();
+      if (!name || !phone) return;
+      var g = data.groups.filter(function (x) { return x.id === id; })[0];
+      if (g.members.length >= g.target) return;
+      g.members.push(name);
+      save(data);
+      renderGroup(id);
+    });
+
+    var quote = document.getElementById("form-quote");
+    quote.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var g = data.groups.filter(function (x) { return x.id === id; })[0];
+      var road = parseInt(document.getElementById("q-road").value, 10);
+      if (!(road > 0)) return;
+      g.quotes.push({
+        dealer: document.getElementById("q-dealer").value.trim(),
+        onRoad: road,
+        discount: parseInt(document.getElementById("q-disc").value, 10) || 0,
+        free: parseInt(document.getElementById("q-free").value, 10) || 0,
+        notes: document.getElementById("q-notes").value.trim()
+      });
+      save(data);
+      renderGroup(id);
+    });
+  }
+
+  document.getElementById("btn-new").addEventListener("click", function () { show("view-new"); });
+
+  document.getElementById("form-new").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var target = Math.max(2, Math.min(500, parseInt(document.getElementById("n-target").value, 10) || 20));
+    var bench = parseInt(document.getElementById("n-bench").value, 10);
+    var g = {
+      id: data.nextId++,
+      make: document.getElementById("n-make").value.trim(),
+      model: document.getElementById("n-model").value.trim(),
+      variant: document.getElementById("n-variant").value.trim(),
+      city: document.getElementById("n-city").value.trim(),
+      target: target,
+      benchmark: bench > 0 ? bench : null,
+      members: [], quotes: [], example: false
+    };
+    data.groups.unshift(g);
+    save(data);
+    e.target.reset();
+    renderGroup(g.id);
+  });
+
+  document.getElementById("app").addEventListener("click", function (e) {
+    var open = e.target.closest("[data-open]");
+    if (open) { renderGroup(parseInt(open.getAttribute("data-open"), 10)); return; }
+    if (e.target.closest("[data-back]")) { renderList(); show("view-list"); }
+  });
+
+  renderList();
+  show("view-list");
+})();
+</script>
